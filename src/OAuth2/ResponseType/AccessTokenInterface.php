@@ -20,4 +20,14 @@ interface AccessTokenInterface extends ResponseTypeInterface
      * @ingroup oauth2_section_5
      */
     public function createAccessToken($client_id, $user_id, $scope = null, $includeRefreshToken = true);
+
+    /**
+     * Handle the revoking of refresh tokens, and access tokens if supported / desirable
+     *
+     * @param $token
+     * @param $token_type_hint
+     * @return mixed
+     */
+    public function revokeToken($token, $token_type_hint);
+
 }

@@ -144,4 +144,27 @@ class AccessToken implements AccessTokenInterface
     {
         return $this->generateAccessToken(); // let's reuse the same scheme for token generation
     }
+
+    /**
+     * Handle the revoking of refresh tokens, and access tokens if supported / desirable
+     *
+     * @param $token
+     * @param $token_type_hint
+     * @return mixed
+     */
+    public function revokeToken($token, $token_type_hint) {
+
+        $revoked = false;
+        if($token_type_hint === null || $token_type_hint === 'refresh_token' && $this->refreshStorage){
+            $revoked = $this->refreshStorage->unsetRefreshToken($token);
+        }
+
+        // spec defines that the server MUST expand its search if it can't find the token hinted at
+        if($token_type_hint === null || $token_type_hint === 'access_token'){
+            $revoked = $revoked || $this->tokenStorage->unsetAccessToken($token);
+        }
+
+        return $revoked;
+
+    }
 }

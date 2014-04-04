@@ -217,4 +217,56 @@ class TokenController implements TokenControllerInterface
 
         $this->grantTypes[$identifier] = $grantType;
     }
+
+    public function handleRevokeRequest(RequestInterface $request, ResponseInterface $response)
+    {
+        if($this->revokeToken($request, $response)) {
+
+            $response->setStatusCode(200);
+            $response->addParameters(array('revoked' => true));
+
+        }
+    }
+
+    /**
+     * Revoke a refresh or access token. Returns true on success and when tokens are invalid
+     *
+     * Note: invalid tokens do not cause an error response since the client
+     * cannot handle such an error in a reasonable way.  Moreover, the
+     * purpose of the revocation request, invalidating the particular token,
+     * is already achieved.
+     *
+     * @param RequestInterface $request
+     * @param ResponseInterface $response
+     * @return bool|null
+     */
+    public function revokeToken(RequestInterface $request, ResponseInterface $response)
+    {
+        if (strtolower($request->server('REQUEST_METHOD')) != 'post') {
+            $response->setError(405, 'invalid_request', 'The request method must be POST when revoking an access token', '#section-3.2');
+            $response->addHttpHeaders(array('Allow' => 'POST'));
+
+            return null;
+        }
+
+        $token_type_hint = $request->request('token_type_hint');
+        if(!in_array($token_type_hint, array(null, 'access_token', 'refresh_token'), true)){
+            $response->setError(400, 'invalid_request', 'Token type hint must be either \'access_token\' or \'refresh_token\'');
+
+            return null;
+        }
+
+        $token = $request->request('token');
+        if($token === null){
+            $response->setError(400, 'invalid_request', 'Missing token parameter to revoke');
+
+            return null;
+        }
+
+        $this->accessToken->revokeToken($token, $token_type_hint);
+
+        return true;
+
+    }
+
 }
