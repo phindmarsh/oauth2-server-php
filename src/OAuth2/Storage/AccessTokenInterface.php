@@ -57,6 +57,6 @@ interface AccessTokenInterface
      *
      * @ingroup oauth2_section_6
      */
-    public function unsetRefreshToken($access_token);
+    public function unsetAccessToken($access_token);
 
 }

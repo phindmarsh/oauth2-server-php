@@ -57,4 +57,11 @@ class JwtAccessToken implements JwtAccessTokenInterface
             return $this->tokenStorage->setAccessToken($oauth_token, $client_id, $user_id, $expires, $scope);
         }
     }
+
+    public function unsetAccessToken($access_token)
+    {
+        if ($this->tokenStorage) {
+            return $this->tokenStorage->unsetAccessToken($access_token);
+        }
+    }
 }
