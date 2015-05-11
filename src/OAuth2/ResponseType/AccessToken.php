@@ -154,4 +154,37 @@ class AccessToken implements AccessTokenInterface
     {
         return $this->generateAccessToken(); // let's reuse the same scheme for token generation
     }
+
+    /**
+     * Handle the revoking of refresh tokens, and access tokens if supported / desirable
+     * RFC7009 specifies that "If the server is unable to locate the token using
+     * the given hint, it MUST extend its search across all of its supported token types"
+     *
+     * @param $token
+     * @param $tokenTypeHint
+     * @param null $skip
+     * @return mixed
+     */
+    public function revokeToken($token, $tokenTypeHint, $skip = null)
+    {
+        $revoked = false;
+
+        if ($skip !== 'refresh_token' && (($tokenTypeHint === 'refresh_token' && $this->refreshStorage) || $tokenTypeHint === null)) {
+            $revoked = $this->refreshStorage->unsetRefreshToken($token);
+        } elseif ($skip !== 'access_token' && ($tokenTypeHint === 'access_token' || $tokenTypeHint === null)) {
+            // @todo remove this check for v2.0
+            if (!method_exists($this->tokenStorage, 'unsetAccessToken')) {
+                $class = get_class($this->tokenStorage);
+                throw new \RuntimeException("Token storage {$class} does not implement required unsetAccessToken method");
+            }
+            $revoked = $this->tokenStorage->unsetAccessToken($token);
+        }
+
+        if (!$revoked && $tokenTypeHint !== null) {
+            // expand search to all token types, skipping the one we've already tried
+            return $this->revokeToken($token, null, $tokenTypeHint);
+        }
+
+        return $revoked;
+    }
 }
