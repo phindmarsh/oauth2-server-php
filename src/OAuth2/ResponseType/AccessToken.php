@@ -161,28 +161,32 @@ class AccessToken implements AccessTokenInterface
      * the given hint, it MUST extend its search across all of its supported token types"
      *
      * @param $token
-     * @param $tokenTypeHint
-     * @param null $skip
-     * @return mixed
+     * @param null $tokenTypeHint
+     * @return boolean
      */
-    public function revokeToken($token, $tokenTypeHint, $skip = null)
+    public function revokeToken($token, $tokenTypeHint = null)
     {
-        $revoked = false;
-
-        if ($skip !== 'refresh_token' && (($tokenTypeHint === 'refresh_token' && $this->refreshStorage) || $tokenTypeHint === null)) {
-            $revoked = $this->refreshStorage->unsetRefreshToken($token);
-        } elseif ($skip !== 'access_token' && ($tokenTypeHint === 'access_token' || $tokenTypeHint === null)) {
-            // @todo remove this check for v2.0
-            if (!method_exists($this->tokenStorage, 'unsetAccessToken')) {
-                $class = get_class($this->tokenStorage);
-                throw new \RuntimeException("Token storage {$class} does not implement required unsetAccessToken method");
+        if ($tokenTypeHint == 'refresh_token') {
+            if ($this->refreshStorage && $revoked = $this->refreshStorage->unsetRefreshToken($token)) {
+                return true;
             }
-            $revoked = $this->tokenStorage->unsetAccessToken($token);
         }
 
-        if (!$revoked && $tokenTypeHint !== null) {
-            // expand search to all token types, skipping the one we've already tried
-            return $this->revokeToken($token, null, $tokenTypeHint);
+        /** @TODO remove in v2 */
+        if (!method_exists($this->tokenStorage, 'unsetAccessToken')) {
+            throw new \RuntimeException(
+                sprintf('Token storage %s must implement unsetAccessToken method', get_class($this->tokenStorage)
+            ));
+        }
+
+        $revoked = $this->tokenStorage->unsetAccessToken($token);
+
+        // if a typehint is supplied and fails, try other storages 
+        // @see https://tools.ietf.org/html/rfc7009#section-2.1
+        if (!$revoked && $tokenTypeHint != 'refresh_token') {
+            if ($this->refreshStorage) {
+                $revoked = $this->refreshStorage->unsetRefreshToken($token);
+            }
         }
 
         return $revoked;

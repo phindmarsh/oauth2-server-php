@@ -56,7 +56,7 @@ class AccessTokenTest extends BaseTest
     }
 
     /** @dataProvider provideStorage */
-    public function testRevokeAccessToken(AccessTokenInterface $storage)
+    public function testUnsetAccessToken(AccessTokenInterface $storage)
     {
         if ($storage instanceof NullStorage || !method_exists($storage, 'unsetAccessToken')) {
             $this->markTestSkipped('Skipped Storage: ' . $storage->getMessage());
